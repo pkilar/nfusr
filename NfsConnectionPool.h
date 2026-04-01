@@ -66,7 +66,8 @@ class NfsConnectionPool {
       std::shared_ptr<nfusr::Logger> logger,
       std::shared_ptr<ClientStats> stats,
       unsigned simultaneousConnections,
-      int nfsTimeoutMs);
+      int nfsTimeoutMs,
+      int nfsVersion = 0);
   ~NfsConnectionPool();
 
   std::shared_ptr<NfsConnection> get();
@@ -85,6 +86,7 @@ class NfsConnectionPool {
   // end of members protected by _lock.
   unsigned liveTarget_; // number of live connections we want to maintain.
   int nfsTimeoutMs_;
+  int nfsVersion_;
 
   void reaper();
 

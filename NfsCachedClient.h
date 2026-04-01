@@ -25,7 +25,8 @@ class NfsCachedClient : public NfsClient {
       std::shared_ptr<nfusr::Logger> logger,
       std::shared_ptr<ClientStats> stats,
       bool errorInjection,
-      NfsClientPermissionMode permMode)
+      NfsClientPermissionMode permMode,
+      int nfsVersion = 0)
       : NfsClient(
             urls,
             hostscript,
@@ -35,7 +36,8 @@ class NfsCachedClient : public NfsClient {
             logger,
             stats,
             errorInjection,
-            permMode) {}
+            permMode,
+            nfsVersion) {}
   ~NfsCachedClient() override;
 
   void replyEntry(

@@ -481,9 +481,10 @@ struct nfusr_mount_options {
   double attrTimeout;
   unsigned maxErrnoRetries;
   char* permMode;
+  int nfsVersion;
 };
 
-std::array<struct fuse_opt, 6> nfusr_mount_opt_descriptors = {
+std::array<struct fuse_opt, 7> nfusr_mount_opt_descriptors = {
     {{"max_conn=%u", offsetof(struct nfusr_mount_options, maxConnections), 0},
      {"timeout=%d", offsetof(struct nfusr_mount_options, nfsTimeout), 0},
      {"actimeo=%lf", offsetof(struct nfusr_mount_options, attrTimeout), 0},
@@ -491,6 +492,7 @@ std::array<struct fuse_opt, 6> nfusr_mount_opt_descriptors = {
       offsetof(struct nfusr_mount_options, maxErrnoRetries),
       0},
      {"perm_mode=%s", offsetof(struct nfusr_mount_options, permMode), 0},
+     {"nfs_version=%d", offsetof(struct nfusr_mount_options, nfsVersion), 0},
      FUSE_OPT_END}};
 
 int main(int argc, char* argv[]) {
@@ -526,6 +528,7 @@ int main(int argc, char* argv[]) {
   mnt_options.attrTimeout = defaultAttrTimeout;
   mnt_options.maxErrnoRetries = defaultMaxErrnoRetries;
   mnt_options.permMode = nullptr;
+  mnt_options.nfsVersion = 0;
 
   for (int i = 0; i < argc; ++i) {
     if (!::strncmp(argv[i], "nfs://", 6)) {
@@ -648,7 +651,8 @@ int main(int argc, char* argv[]) {
         logger,
         stats,
         errorInjection,
-        permMode);
+        permMode,
+        mnt_options.nfsVersion);
   } else {
     nfs_client = std::make_unique<NfsClient>(
         urls,
@@ -659,7 +663,8 @@ int main(int argc, char* argv[]) {
         logger,
         stats,
         errorInjection,
-        permMode);
+        permMode,
+        mnt_options.nfsVersion);
   }
 
   session = fuse_lowlevel_new(
@@ -698,21 +703,26 @@ int main(int argc, char* argv[]) {
   rc = rc == 0 ? EXIT_SUCCESS : EXIT_FAILURE;
 
   fuse_remove_signal_handlers(session);
-  fuse_session_remove_chan(chan);
 
   logger->LOG_MSG(LOG_INFO, "Dismounted %s.\n", mount);
 
 cleanup:
 
-  nfs_client.reset();
-
-  if (session != nullptr) {
-    fuse_session_destroy(session);
+  // Tear down FUSE before destroying NFS client to ensure no in-flight
+  // callbacks access freed NfsConnection/libnfs contexts.
+  if (session != nullptr && chan != nullptr) {
+    fuse_session_remove_chan(chan);
   }
 
   if (chan != nullptr) {
     fuse_unmount(mount, chan);
   }
+
+  if (session != nullptr) {
+    fuse_session_destroy(session);
+  }
+
+  nfs_client.reset();
 
   ::free(mount);
   ::free(logFile);

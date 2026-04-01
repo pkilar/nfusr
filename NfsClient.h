@@ -56,7 +56,8 @@ class NfsClient {
       std::shared_ptr<nfusr::Logger> logger,
       std::shared_ptr<ClientStats> stats,
       bool errorInjection,
-      NfsClientPermissionMode permMode);
+      NfsClientPermissionMode permMode,
+      int nfsVersion = 0);
   virtual ~NfsClient();
 
   bool start(std::shared_ptr<std::string> cacheRoot);

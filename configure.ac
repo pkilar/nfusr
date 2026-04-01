@@ -11,6 +11,7 @@ AC_CONFIG_MACRO_DIR([m4])
 AC_PROG_CXX
 AC_PROG_INSTALL
 AC_PROG_LN_S
+AC_CHECK_TOOL([STRIP], [strip])
 AX_CXX_COMPILE_STDCXX_14
 # Checks for libraries.
 AC_SEARCH_LIBS([fuse_mount], [fuse], [], AC_MSG_ERROR([required libfuse-dev not found]))

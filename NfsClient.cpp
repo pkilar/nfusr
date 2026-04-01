@@ -16,6 +16,13 @@
 #include <cassert>
 #include <chrono>
 #include <cstring>
+#include <sys/sysmacros.h>
+
+// libnfs >= 6.0 renamed rpc_nfs3_*_async() (returning int) to
+// rpc_nfs3_*_task() (returning struct rpc_pdu *). Convert to int status.
+static inline int rpc_task_status(struct rpc_pdu *pdu) {
+    return pdu ? 0 : -1;
+}
 
 double NfsClient::attrTimeout_ = 0.0;
 
@@ -130,7 +137,8 @@ NfsClient::NfsClient(
     std::shared_ptr<nfusr::Logger> logger,
     std::shared_ptr<ClientStats> stats,
     bool errorInjection,
-    NfsClientPermissionMode permMode)
+    NfsClientPermissionMode permMode,
+    int nfsVersion)
     : connPool_(
           urls,
           hostscript,
@@ -138,7 +146,8 @@ NfsClient::NfsClient(
           logger,
           stats,
           std::min(urls.size(), targetConnections),
-          nfsTimeoutMs),
+          nfsTimeoutMs,
+          nfsVersion),
       logger_(logger),
       stats_(stats),
       permMode_(permMode),
@@ -343,7 +352,7 @@ void NfsClient::getattrWithContext(RpcContextInodeFile* ctx) {
     if (ctx->obtainConnection()) {
       setUidGid(*ctx, false);
       rpc_status =
-          rpc_nfs3_getattr_async(ctx->getRpcCtx(), getattrCallback, &args, ctx);
+          rpc_task_status(rpc_nfs3_getattr_task(ctx->getRpcCtx(), getattrCallback, &args, ctx));
       restoreUidGid(*ctx, false);
       ctx->unlockConnection();
     }
@@ -517,8 +526,8 @@ static void opendirContinue(OpendirRpcContext* ctx, bool have_connection) {
     args.maxcount = 65536;
 
     if (have_connection || ctx->obtainConnection()) {
-      rpc_status = rpc_nfs3_readdirplus_async(
-          ctx->getRpcCtx(), opendirCallback, &args, ctx);
+      rpc_status = rpc_task_status(rpc_nfs3_readdirplus_task(
+          ctx->getRpcCtx(), opendirCallback, &args, ctx));
       if (!have_connection) {
         ctx->unlockConnection();
       } else {
@@ -619,8 +628,8 @@ void NfsClient::lookupWithContext(RpcContextParentName* ctx) {
 
     if (ctx->obtainConnection()) {
       setUidGid(*ctx, false);
-      rpc_status = rpc_nfs3_lookup_async(
-          ctx->getRpcCtx(), this->lookupCallback, &args, ctx);
+      rpc_status = rpc_task_status(rpc_nfs3_lookup_task(
+          ctx->getRpcCtx(), this->lookupCallback, &args, ctx));
       restoreUidGid(*ctx, false);
       ctx->unlockConnection();
     }
@@ -687,7 +696,7 @@ void NfsClient::openWithContext(RpcContextInodeFile* ctx) {
     if (ctx->obtainConnection()) {
       setUidGid(*ctx, false);
       rpc_status =
-          rpc_nfs3_access_async(ctx->getRpcCtx(), openCallback, &args, ctx);
+          rpc_task_status(rpc_nfs3_access_task(ctx->getRpcCtx(), openCallback, &args, ctx));
       restoreUidGid(*ctx, false);
       ctx->unlockConnection();
     }
@@ -748,7 +757,7 @@ void NfsClient::readWithContext(ReadRpcContext* ctx) {
     if (ctx->obtainConnection()) {
       setUidGid(*ctx, false);
       rpc_status =
-          rpc_nfs3_read_async(ctx->getRpcCtx(), readCallback, &args, ctx);
+          rpc_task_status(rpc_nfs3_read_task(ctx->getRpcCtx(), readCallback, NULL, 0, &args, ctx));
       restoreUidGid(*ctx, false);
       ctx->unlockConnection();
     }
@@ -838,7 +847,7 @@ void NfsClient::writeWithContext(WriteRpcContext* ctx) {
     if (ctx->obtainConnection()) {
       setUidGid(*ctx, false);
       rpc_status =
-          rpc_nfs3_write_async(ctx->getRpcCtx(), writeCallback, &args, ctx);
+          rpc_task_status(rpc_nfs3_write_task(ctx->getRpcCtx(), writeCallback, &args, ctx));
       restoreUidGid(*ctx, false);
       ctx->unlockConnection();
     }
@@ -940,8 +949,8 @@ void NfsClient::create(
 
     if (ctx->obtainConnection()) {
       setUidGid(*ctx, true);
-      rpc_status = rpc_nfs3_create_async(
-          ctx->getRpcCtx(), this->createCallback, &args, ctx);
+      rpc_status = rpc_task_status(rpc_nfs3_create_task(
+          ctx->getRpcCtx(), this->createCallback, &args, ctx));
       restoreUidGid(*ctx, true);
       ctx->unlockConnection();
     }
@@ -983,7 +992,7 @@ void NfsClient::unlink(fuse_req_t req, fuse_ino_t parent, const char* name) {
           fuse_req_ctx(req)->uid);
       setUidGid(*ctx, false);
       rpc_status =
-          rpc_nfs3_remove_async(ctx->getRpcCtx(), unlinkCallback, &args, ctx);
+          rpc_task_status(rpc_nfs3_remove_task(ctx->getRpcCtx(), unlinkCallback, &args, ctx));
       restoreUidGid(*ctx, false);
       ctx->unlockConnection();
     }
@@ -1114,7 +1123,7 @@ void NfsClient::setattrWithContext(SetattrRpcContext* ctx) {
     if (ctx->obtainConnection()) {
       setUidGid(*ctx, false);
       rpc_status =
-          rpc_nfs3_setattr_async(ctx->getRpcCtx(), setattrCallback, &args, ctx);
+          rpc_task_status(rpc_nfs3_setattr_task(ctx->getRpcCtx(), setattrCallback, &args, ctx));
       restoreUidGid(*ctx, false);
       ctx->unlockConnection();
     }
@@ -1197,8 +1206,8 @@ void NfsClient::mkdir(
 
     if (ctx->obtainConnection()) {
       setUidGid(*ctx, true);
-      rpc_status = rpc_nfs3_mkdir_async(
-          ctx->getRpcCtx(), this->mkdirCallback, &args, ctx);
+      rpc_status = rpc_task_status(rpc_nfs3_mkdir_task(
+          ctx->getRpcCtx(), this->mkdirCallback, &args, ctx));
       restoreUidGid(*ctx, true);
       ctx->unlockConnection();
     }
@@ -1235,7 +1244,7 @@ void NfsClient::rmdir(fuse_req_t req, fuse_ino_t parent, const char* name) {
     if (ctx->obtainConnection()) {
       setUidGid(*ctx, false);
       rpc_status =
-          rpc_nfs3_rmdir_async(ctx->getRpcCtx(), rmdirCallback, &args, ctx);
+          rpc_task_status(rpc_nfs3_rmdir_task(ctx->getRpcCtx(), rmdirCallback, &args, ctx));
       restoreUidGid(*ctx, false);
       ctx->unlockConnection();
     }
@@ -1314,8 +1323,8 @@ void NfsClient::symlink(
 
     if (ctx->obtainConnection()) {
       setUidGid(*ctx, true);
-      rpc_status = rpc_nfs3_symlink_async(
-          ctx->getRpcCtx(), this->symlinkCallback, &args, ctx);
+      rpc_status = rpc_task_status(rpc_nfs3_symlink_task(
+          ctx->getRpcCtx(), this->symlinkCallback, &args, ctx));
       restoreUidGid(*ctx, true);
       ctx->unlockConnection();
     }
@@ -1350,8 +1359,8 @@ void NfsClient::readlink(fuse_req_t req, fuse_ino_t inode) {
 
     if (ctx->obtainConnection()) {
       setUidGid(*ctx, false);
-      rpc_status = rpc_nfs3_readlink_async(
-          ctx->getRpcCtx(), readlinkCallback, &args, ctx);
+      rpc_status = rpc_task_status(rpc_nfs3_readlink_task(
+          ctx->getRpcCtx(), readlinkCallback, &args, ctx));
       restoreUidGid(*ctx, false);
       ctx->unlockConnection();
     }
@@ -1434,7 +1443,7 @@ void NfsClient::rename(
     if (ctx->obtainConnection()) {
       setUidGid(*ctx, false);
       rpc_status =
-          rpc_nfs3_rename_async(ctx->getRpcCtx(), renameCallback, &args, ctx);
+          rpc_task_status(rpc_nfs3_rename_task(ctx->getRpcCtx(), renameCallback, &args, ctx));
       restoreUidGid(*ctx, false);
       ctx->unlockConnection();
     }
@@ -1507,7 +1516,7 @@ void NfsClient::link(
     if (ctx->obtainConnection()) {
       setUidGid(*ctx, false);
       rpc_status =
-          rpc_nfs3_link_async(ctx->getRpcCtx(), this->linkCallback, &args, ctx);
+          rpc_task_status(rpc_nfs3_link_task(ctx->getRpcCtx(), this->linkCallback, &args, ctx));
       restoreUidGid(*ctx, false);
       ctx->unlockConnection();
     }
@@ -1572,7 +1581,7 @@ void NfsClient::fsync(
     if (ctx->obtainConnection()) {
       setUidGid(*ctx, false);
       rpc_status =
-          rpc_nfs3_commit_async(ctx->getRpcCtx(), fsyncCallback, &args, ctx);
+          rpc_task_status(rpc_nfs3_commit_task(ctx->getRpcCtx(), fsyncCallback, &args, ctx));
       restoreUidGid(*ctx, false);
       ctx->unlockConnection();
     }
@@ -1621,7 +1630,7 @@ void NfsClient::statfsWithContext(RpcContextInode* ctx) {
     if (ctx->obtainConnection()) {
       setUidGid(*ctx, false);
       rpc_status =
-          rpc_nfs3_fsstat_async(ctx->getRpcCtx(), statfsCallback, &args, ctx);
+          rpc_task_status(rpc_nfs3_fsstat_task(ctx->getRpcCtx(), statfsCallback, &args, ctx));
       restoreUidGid(*ctx, false);
       ctx->unlockConnection();
     }
@@ -1694,7 +1703,7 @@ void NfsClient::accessWithContext(AccessRpcContext* ctx) {
     if (ctx->obtainConnection()) {
       setUidGid(*ctx, false);
       rpc_status =
-          rpc_nfs3_access_async(ctx->getRpcCtx(), accessCallback, &args, ctx);
+          rpc_task_status(rpc_nfs3_access_task(ctx->getRpcCtx(), accessCallback, &args, ctx));
       restoreUidGid(*ctx, false);
       ctx->unlockConnection();
     }

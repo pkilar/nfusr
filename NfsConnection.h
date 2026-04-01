@@ -10,6 +10,8 @@
 #pragma once
 
 #include <sys/time.h>
+#include <cstddef>
+#define HAVE_TLS
 #include <nfsc/libnfs.h>
 #include <memory>
 #include <mutex>
@@ -26,7 +28,8 @@ class NfsConnection {
  public:
   NfsConnection(std::shared_ptr<nfusr::Logger> logger,
                 std::shared_ptr<ClientStats> stats,
-                int timeoutMs);
+                int timeoutMs,
+                int nfsVersion = 0);
   ~NfsConnection();
 
   int open(std::shared_ptr<std::string> url);
@@ -77,4 +80,5 @@ class NfsConnection {
   bool terminate_;
   std::string description_;
   int timeoutMs_;
+  int nfsVersion_;
 };

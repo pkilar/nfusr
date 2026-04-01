@@ -17,7 +17,8 @@ NfsConnectionPool::NfsConnectionPool(
     std::shared_ptr<nfusr::Logger> logger,
     std::shared_ptr<ClientStats> stats,
     unsigned simultaneousConnections,
-    int nfsTimeoutMs)
+    int nfsTimeoutMs,
+    int nfsVersion)
     : nUrls_(urls.size()) {
   logger_ = logger;
   stats_ = stats;
@@ -34,6 +35,7 @@ NfsConnectionPool::NfsConnectionPool(
   next_ = 0;
   liveTarget_ = simultaneousConnections;
   nfsTimeoutMs_ = nfsTimeoutMs;
+  nfsVersion_ = nfsVersion;
   terminateReaper_ = false;
   reaperThread_ = std::thread(&NfsConnectionPool::reaper, this);
 
@@ -128,7 +130,7 @@ std::shared_ptr<NfsConnection> NfsConnectionPool::get() {
           if (!target.getConnected()) {
             auto url = target.getUrl();
             auto conn =
-                std::make_shared<NfsConnection>(logger_, stats_, nfsTimeoutMs_);
+                std::make_shared<NfsConnection>(logger_, stats_, nfsTimeoutMs_, nfsVersion_);
             logger_->LOG_MSG(LOG_DEBUG, "Trying to open %s.\n", url->c_str());
             if (!conn->open(url)) {
               logger_->LOG_MSG(

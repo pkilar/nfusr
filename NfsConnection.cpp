@@ -20,13 +20,18 @@
 NfsConnection::NfsConnection(
     std::shared_ptr<nfusr::Logger> logger,
     std::shared_ptr<ClientStats> stats,
-    int timeoutMs) {
+    int timeoutMs,
+    int nfsVersion) {
   logger_ = logger;
   stats_ = stats;
+  nfsVersion_ = nfsVersion;
   if ((ctx_ = nfs_init_context()) == nullptr) {
     logger_->LOG_MSG(LOG_ERR, "Cannot initialize NFS context.\n");
     throw std::runtime_error("Cannot initialize NFS context.");
   }
+#ifdef HAVE_TLS
+  nfs_set_xprtsecurity(ctx_, RPC_XPRTSEC_NONE);
+#endif
   nfs_set_autoreconnect(ctx_, 0);
   wake_fd_ = -1;
   opened_ = false;
@@ -168,15 +173,57 @@ int NfsConnection::open(std::shared_ptr<std::string> url) {
 
   auto dir = std::string(parsed_url->path) + std::string(parsed_url->file);
 
-  if (nfs_mount(ctx_, parsed_url->server, dir.c_str()) != 0) {
-    logger_->LOG_MSG(
-        LOG_ERR,
-        "Failed to mount nfs share %s/%s: %s.\n",
-        parsed_url->server,
-        dir.c_str(),
-        nfs_get_error(ctx_));
-    nfs_destroy_url(parsed_url);
-    return -EIO;
+  if (nfsVersion_ > 0) {
+    // Explicit version requested
+    nfs_set_version(ctx_, nfsVersion_);
+    if (nfs_mount(ctx_, parsed_url->server, dir.c_str()) != 0) {
+      logger_->LOG_MSG(
+          LOG_ERR,
+          "Failed to mount nfs share %s%s (v%d): %s.\n",
+          parsed_url->server,
+          dir.c_str(),
+          nfsVersion_,
+          nfs_get_error(ctx_));
+      nfs_destroy_url(parsed_url);
+      return -EIO;
+    }
+  } else {
+    // Auto: try NFSv3 first, fall back to NFSv4
+    nfs_set_version(ctx_, 3);
+    if (nfs_mount(ctx_, parsed_url->server, dir.c_str()) != 0) {
+      logger_->LOG_MSG(
+          LOG_INFO,
+          "NFSv3 mount of %s%s failed, trying NFSv4.\n",
+          parsed_url->server,
+          dir.c_str());
+
+      // Re-create context for v4 attempt since the failed mount
+      // may leave the context in a bad state
+      rpc_disconnect(nfs_get_rpc_context(ctx_), "v3 mount failed");
+      nfs_destroy_context(ctx_);
+      if ((ctx_ = nfs_init_context()) == nullptr) {
+        logger_->LOG_MSG(LOG_ERR, "Cannot reinitialize NFS context.\n");
+        nfs_destroy_url(parsed_url);
+        return -EIO;
+      }
+#ifdef HAVE_TLS
+      nfs_set_xprtsecurity(ctx_, RPC_XPRTSEC_NONE);
+#endif
+      nfs_set_autoreconnect(ctx_, 0);
+      nfs_set_timeout(ctx_, timeoutMs_);
+      nfs_set_version(ctx_, 4);
+
+      if (nfs_mount(ctx_, parsed_url->server, dir.c_str()) != 0) {
+        logger_->LOG_MSG(
+            LOG_ERR,
+            "Failed to mount nfs share %s%s: %s.\n",
+            parsed_url->server,
+            dir.c_str(),
+            nfs_get_error(ctx_));
+        nfs_destroy_url(parsed_url);
+        return -EIO;
+      }
+    }
   }
 
   nfs_destroy_url(parsed_url);
