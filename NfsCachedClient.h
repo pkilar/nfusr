@@ -8,8 +8,8 @@
  */
 #pragma once
 
-#include "NfsClient.h"
 #include <unistd.h>
+#include "NfsClient.h"
 #define CACHEBLOCKSIZE 1024
 
 struct CacheBlock;
@@ -49,20 +49,7 @@ class NfsCachedClient : public NfsClient {
       const char* caller,
       fuse_ino_t parent,
       const char* name) override;
-  void read(
-      fuse_req_t req,
-      fuse_ino_t inode,
-      size_t size,
-      off_t off,
-      struct fuse_file_info* file) override;
-  std::unique_ptr<CacheBlock> readCache(
-      std::shared_ptr<std::string> data_fname,
-      size_t size,
-      off_t offset);
-  void writeCache(
-      std::shared_ptr<std::string> data_fname,
-      size_t size,
-      off_t offset,
-      const char* data,
-      u_int data_len);
+  void read(fuse_req_t req, fuse_ino_t inode, size_t size, off_t off, struct fuse_file_info* file) override;
+  std::unique_ptr<CacheBlock> readCache(std::shared_ptr<std::string> data_fname, size_t size, off_t offset);
+  void writeCache(std::shared_ptr<std::string> data_fname, size_t size, off_t offset, const char* data, u_int data_len);
 };

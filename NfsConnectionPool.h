@@ -14,16 +14,14 @@
 #include <mutex>
 #include <vector>
 
+#include "ClientStats.h"
 #include "NfsConnection.h"
 #include "logger.h"
-#include "ClientStats.h"
 
 /// @brief Hold a target connection URL and current connection state.
 class ConnectionTarget {
  public:
-  explicit ConnectionTarget(
-      std::shared_ptr<std::string> url,
-      bool connected = false)
+  explicit ConnectionTarget(std::shared_ptr<std::string> url, bool connected = false)
       : url_(url), connected_(connected) {}
 
   std::shared_ptr<std::string> getUrl() const {
@@ -74,7 +72,7 @@ class NfsConnectionPool {
   void failed(std::shared_ptr<NfsConnection> conn);
 
  private:
-  std::vector<std::string> runScript(const char * scriptPath);
+  std::vector<std::string> runScript(const char* scriptPath);
   std::shared_ptr<nfusr::Logger> logger_;
   std::shared_ptr<ClientStats> stats_;
   // lock_ protects following members:
@@ -95,7 +93,7 @@ class NfsConnectionPool {
   std::mutex reaperMutex_;
   std::condition_variable reaperCondvar_;
 
-  void dumpStats(std::shared_ptr<nfusr::Logger> logger, const char *prefix);
+  void dumpStats(std::shared_ptr<nfusr::Logger> logger, const char* prefix);
 
   // scriptMutex_ protects terminalScript_
   std::mutex scriptMutex_;

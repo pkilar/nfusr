@@ -28,267 +28,135 @@ static const double defaultAttrTimeout = 60.0;
 static const unsigned int defaultMaxErrnoRetries = 0;
 unsigned RpcContext::maxErrnoRetries_ = defaultMaxErrnoRetries;
 
-static void
-nfs_ll_getattr(fuse_req_t req, fuse_ino_t inode, struct fuse_file_info* file) {
+static void nfs_ll_getattr(fuse_req_t req, fuse_ino_t inode, struct fuse_file_info* file) {
   auto client = reinterpret_cast<NfsClient*>(fuse_req_userdata(req));
-  client->getLogger()->LOG_MSG(
-      LOG_DEBUG, "%s(%lu)(%lu)\n", __func__, fuse_get_unique(req), inode);
+  client->getLogger()->LOG_MSG(LOG_DEBUG, "%s(%lu)(%lu)\n", __func__, fuse_get_unique(req), inode);
   client->getattr(req, inode, file);
 }
 
 static void nfs_ll_lookup(fuse_req_t req, fuse_ino_t parent, const char* name) {
   auto client = reinterpret_cast<NfsClient*>(fuse_req_userdata(req));
-  client->getLogger()->LOG_MSG(
-      LOG_DEBUG,
-      "%s(%lu)(%lu+%s)\n",
-      __func__,
-      fuse_get_unique(req),
-      parent,
-      name);
+  client->getLogger()->LOG_MSG(LOG_DEBUG, "%s(%lu)(%lu+%s)\n", __func__, fuse_get_unique(req), parent, name);
   client->lookup(req, parent, name);
 }
 
-static void
-nfs_ll_opendir(fuse_req_t req, fuse_ino_t inode, struct fuse_file_info* file) {
+static void nfs_ll_opendir(fuse_req_t req, fuse_ino_t inode, struct fuse_file_info* file) {
   auto client = reinterpret_cast<NfsClient*>(fuse_req_userdata(req));
-  client->getLogger()->LOG_MSG(
-      LOG_DEBUG, "%s(%lu)(%lu)\n", __func__, fuse_get_unique(req), inode);
+  client->getLogger()->LOG_MSG(LOG_DEBUG, "%s(%lu)(%lu)\n", __func__, fuse_get_unique(req), inode);
   client->opendir(req, inode, file);
 }
 
-static void nfs_ll_readdir(
-    fuse_req_t req,
-    fuse_ino_t inode,
-    size_t size,
-    off_t off,
-    struct fuse_file_info* file) {
+static void nfs_ll_readdir(fuse_req_t req, fuse_ino_t inode, size_t size, off_t off, struct fuse_file_info* file) {
   auto client = reinterpret_cast<NfsClient*>(fuse_req_userdata(req));
-  client->getLogger()->LOG_MSG(
-      LOG_DEBUG,
-      "%s(%lu)(%lu@:%lu@%lu)\n",
-      __func__,
-      fuse_get_unique(req),
-      inode,
-      size,
-      off);
+  client->getLogger()->LOG_MSG(LOG_DEBUG, "%s(%lu)(%lu@:%lu@%lu)\n", __func__, fuse_get_unique(req), inode, size, off);
   client->readdir(req, inode, size, off, file);
 }
 
-static void nfs_ll_releasedir(
-    fuse_req_t req,
-    fuse_ino_t inode,
-    struct fuse_file_info* file) {
+static void nfs_ll_releasedir(fuse_req_t req, fuse_ino_t inode, struct fuse_file_info* file) {
   auto client = reinterpret_cast<NfsClient*>(fuse_req_userdata(req));
-  client->getLogger()->LOG_MSG(
-      LOG_DEBUG, "%s(%lu)(%lu)\n", __func__, fuse_get_unique(req), inode);
+  client->getLogger()->LOG_MSG(LOG_DEBUG, "%s(%lu)(%lu)\n", __func__, fuse_get_unique(req), inode);
   client->releasedir(req, inode, file);
 }
 
-static void
-nfs_ll_forget(fuse_req_t req, fuse_ino_t inode, unsigned long nlookup) {
+static void nfs_ll_forget(fuse_req_t req, fuse_ino_t inode, unsigned long nlookup) {
   auto client = reinterpret_cast<NfsClient*>(fuse_req_userdata(req));
-  client->getLogger()->LOG_MSG(
-      LOG_DEBUG,
-      "%s(%lu)(%lu, %lu)\n",
-      __func__,
-      fuse_get_unique(req),
-      inode,
-      nlookup);
+  client->getLogger()->LOG_MSG(LOG_DEBUG, "%s(%lu)(%lu, %lu)\n", __func__, fuse_get_unique(req), inode, nlookup);
   client->forget(req, inode, nlookup);
 }
 
-static void
-nfs_ll_open(fuse_req_t req, fuse_ino_t inode, struct fuse_file_info* file) {
+static void nfs_ll_open(fuse_req_t req, fuse_ino_t inode, struct fuse_file_info* file) {
   auto client = reinterpret_cast<NfsClient*>(fuse_req_userdata(req));
-  client->getLogger()->LOG_MSG(
-      LOG_DEBUG, "%s(%lu)(%lu)\n", __func__, fuse_get_unique(req), inode);
+  client->getLogger()->LOG_MSG(LOG_DEBUG, "%s(%lu)(%lu)\n", __func__, fuse_get_unique(req), inode);
   client->open(req, inode, file);
 }
 
-static void
-nfs_ll_release(fuse_req_t req, fuse_ino_t inode, struct fuse_file_info* fi) {
+static void nfs_ll_release(fuse_req_t req, fuse_ino_t inode, struct fuse_file_info* fi) {
   auto client = reinterpret_cast<NfsClient*>(fuse_req_userdata(req));
-  client->getLogger()->LOG_MSG(
-      LOG_DEBUG, "%s(%lu)(%lu)\n", __func__, fuse_get_unique(req), inode);
+  client->getLogger()->LOG_MSG(LOG_DEBUG, "%s(%lu)(%lu)\n", __func__, fuse_get_unique(req), inode);
   client->release(req, inode, fi);
 }
 
-static void nfs_ll_read(
-    fuse_req_t req,
-    fuse_ino_t inode,
-    size_t size,
-    off_t off,
-    struct fuse_file_info* file) {
+static void nfs_ll_read(fuse_req_t req, fuse_ino_t inode, size_t size, off_t off, struct fuse_file_info* file) {
   auto client = reinterpret_cast<NfsClient*>(fuse_req_userdata(req));
-  client->getLogger()->LOG_MSG(
-      LOG_DEBUG,
-      "%s(%lu)(%lu:%lu@%lu)\n",
-      __func__,
-      fuse_get_unique(req),
-      inode,
-      size,
-      off);
+  client->getLogger()->LOG_MSG(LOG_DEBUG, "%s(%lu)(%lu:%lu@%lu)\n", __func__, fuse_get_unique(req), inode, size, off);
   client->read(req, inode, size, off, file);
 }
 
-static void nfs_ll_write(
-    fuse_req_t req,
-    fuse_ino_t inode,
-    const char* buf,
-    size_t size,
-    off_t off,
-    struct fuse_file_info* file) {
+static void
+nfs_ll_write(fuse_req_t req, fuse_ino_t inode, const char* buf, size_t size, off_t off, struct fuse_file_info* file) {
   auto client = reinterpret_cast<NfsClient*>(fuse_req_userdata(req));
-  client->getLogger()->LOG_MSG(
-      LOG_DEBUG,
-      "%s(%lu)(%lu:%lu@%lu)\n",
-      __func__,
-      fuse_get_unique(req),
-      inode,
-      size,
-      off);
+  client->getLogger()->LOG_MSG(LOG_DEBUG, "%s(%lu)(%lu:%lu@%lu)\n", __func__, fuse_get_unique(req), inode, size, off);
   client->write(req, inode, buf, size, off, file);
 }
 
-static void nfs_ll_create(
-    fuse_req_t req,
-    fuse_ino_t parent,
-    const char* name,
-    mode_t mode,
-    struct fuse_file_info* file) {
+static void
+nfs_ll_create(fuse_req_t req, fuse_ino_t parent, const char* name, mode_t mode, struct fuse_file_info* file) {
   auto client = reinterpret_cast<NfsClient*>(fuse_req_userdata(req));
-  client->getLogger()->LOG_MSG(
-      LOG_DEBUG,
-      "%s(%lu)(%lu+%s)\n",
-      __func__,
-      fuse_get_unique(req),
-      parent,
-      name);
+  client->getLogger()->LOG_MSG(LOG_DEBUG, "%s(%lu)(%lu+%s)\n", __func__, fuse_get_unique(req), parent, name);
   client->create(req, parent, name, mode, file);
 }
 
 static void nfs_ll_unlink(fuse_req_t req, fuse_ino_t parent, const char* name) {
   auto client = reinterpret_cast<NfsClient*>(fuse_req_userdata(req));
-  client->getLogger()->LOG_MSG(
-      LOG_DEBUG,
-      "%s(%lu)(%lu+%s)\n",
-      __func__,
-      fuse_get_unique(req),
-      parent,
-      name);
+  client->getLogger()->LOG_MSG(LOG_DEBUG, "%s(%lu)(%lu+%s)\n", __func__, fuse_get_unique(req), parent, name);
   client->unlink(req, parent, name);
 }
 
-static void nfs_ll_setattr(
-    fuse_req_t req,
-    fuse_ino_t inode,
-    struct stat* attr,
-    int valid,
-    struct fuse_file_info* fi) {
+static void nfs_ll_setattr(fuse_req_t req, fuse_ino_t inode, struct stat* attr, int valid, struct fuse_file_info* fi) {
   auto client = reinterpret_cast<NfsClient*>(fuse_req_userdata(req));
-  client->getLogger()->LOG_MSG(
-      LOG_DEBUG, "%s(%lu)(%lu)\n", __func__, fuse_get_unique(req), inode);
+  client->getLogger()->LOG_MSG(LOG_DEBUG, "%s(%lu)(%lu)\n", __func__, fuse_get_unique(req), inode);
   client->setattr(req, inode, attr, valid, fi);
 }
 
-static void
-nfs_ll_mkdir(fuse_req_t req, fuse_ino_t parent, const char* name, mode_t mode) {
+static void nfs_ll_mkdir(fuse_req_t req, fuse_ino_t parent, const char* name, mode_t mode) {
   auto client = reinterpret_cast<NfsClient*>(fuse_req_userdata(req));
-  client->getLogger()->LOG_MSG(
-      LOG_DEBUG, "%s(%lu)(%s)\n", __func__, fuse_get_unique(req), name);
+  client->getLogger()->LOG_MSG(LOG_DEBUG, "%s(%lu)(%s)\n", __func__, fuse_get_unique(req), name);
   client->mkdir(req, parent, name, mode);
 }
 
 static void nfs_ll_rmdir(fuse_req_t req, fuse_ino_t parent, const char* name) {
   auto client = reinterpret_cast<NfsClient*>(fuse_req_userdata(req));
-  client->getLogger()->LOG_MSG(
-      LOG_DEBUG,
-      "%s(%lu)(%lu+%s)\n",
-      __func__,
-      fuse_get_unique(req),
-      parent,
-      name);
+  client->getLogger()->LOG_MSG(LOG_DEBUG, "%s(%lu)(%lu+%s)\n", __func__, fuse_get_unique(req), parent, name);
   client->rmdir(req, parent, name);
 }
 
-static void nfs_ll_symlink(
-    fuse_req_t req,
-    const char* link,
-    fuse_ino_t parent,
-    const char* name) {
+static void nfs_ll_symlink(fuse_req_t req, const char* link, fuse_ino_t parent, const char* name) {
   auto client = reinterpret_cast<NfsClient*>(fuse_req_userdata(req));
   client->getLogger()->LOG_MSG(
-      LOG_DEBUG,
-      "%s(%lu)(%s -> %lu+%s)\n",
-      __func__,
-      fuse_get_unique(req),
-      link,
-      parent,
-      name);
+      LOG_DEBUG, "%s(%lu)(%s -> %lu+%s)\n", __func__, fuse_get_unique(req), link, parent, name);
   client->symlink(req, link, parent, name);
 }
 
 static void nfs_ll_readlink(fuse_req_t req, fuse_ino_t inode) {
   auto client = reinterpret_cast<NfsClient*>(fuse_req_userdata(req));
-  client->getLogger()->LOG_MSG(
-      LOG_DEBUG, "%s(%lu)(%lu)\n", __func__, fuse_get_unique(req), inode);
+  client->getLogger()->LOG_MSG(LOG_DEBUG, "%s(%lu)(%lu)\n", __func__, fuse_get_unique(req), inode);
   client->readlink(req, inode);
 }
 
-static void nfs_ll_link(
-    fuse_req_t req,
-    fuse_ino_t inode,
-    fuse_ino_t newparent,
-    const char* newname) {
+static void nfs_ll_link(fuse_req_t req, fuse_ino_t inode, fuse_ino_t newparent, const char* newname) {
   auto client = reinterpret_cast<NfsClient*>(fuse_req_userdata(req));
   client->getLogger()->LOG_MSG(
-      LOG_DEBUG,
-      "%s(%lu)(%lu -> %lu+%s)\n",
-      __func__,
-      fuse_get_unique(req),
-      inode,
-      newparent,
-      newname);
+      LOG_DEBUG, "%s(%lu)(%lu -> %lu+%s)\n", __func__, fuse_get_unique(req), inode, newparent, newname);
   client->link(req, inode, newparent, newname);
 }
 
-static void nfs_ll_rename(
-    fuse_req_t req,
-    fuse_ino_t parent,
-    const char* name,
-    fuse_ino_t newparent,
-    const char* newname) {
+static void
+nfs_ll_rename(fuse_req_t req, fuse_ino_t parent, const char* name, fuse_ino_t newparent, const char* newname) {
   auto client = reinterpret_cast<NfsClient*>(fuse_req_userdata(req));
   client->getLogger()->LOG_MSG(
-      LOG_DEBUG,
-      "%s(%lu)(%lu+%s -> %lu+%s)\n",
-      __func__,
-      fuse_get_unique(req),
-      parent,
-      name,
-      newparent,
-      newname);
+      LOG_DEBUG, "%s(%lu)(%lu+%s -> %lu+%s)\n", __func__, fuse_get_unique(req), parent, name, newparent, newname);
   client->rename(req, parent, name, newparent, newname);
 }
 
-static void nfs_ll_fsync(
-    fuse_req_t req,
-    fuse_ino_t inode,
-    int datasync,
-    struct fuse_file_info* file) {
+static void nfs_ll_fsync(fuse_req_t req, fuse_ino_t inode, int datasync, struct fuse_file_info* file) {
   auto client = reinterpret_cast<NfsClient*>(fuse_req_userdata(req));
-  client->getLogger()->LOG_MSG(
-      LOG_DEBUG, "%s(%lu)(%lu)\n", __func__, fuse_get_unique(req), inode);
+  client->getLogger()->LOG_MSG(LOG_DEBUG, "%s(%lu)(%lu)\n", __func__, fuse_get_unique(req), inode);
   client->fsync(req, inode, datasync, file);
 }
 
-static void nfs_ll_flush(
-    fuse_req_t req,
-    fuse_ino_t inode,
-    struct fuse_file_info* /* file */) {
+static void nfs_ll_flush(fuse_req_t req, fuse_ino_t inode, struct fuse_file_info* /* file */) {
   auto client = reinterpret_cast<NfsClient*>(fuse_req_userdata(req));
-  client->getLogger()->LOG_MSG(
-      LOG_DEBUG, "%s(%lu)(%lu)\n", __func__, fuse_get_unique(req), inode);
+  client->getLogger()->LOG_MSG(LOG_DEBUG, "%s(%lu)(%lu)\n", __func__, fuse_get_unique(req), inode);
 
   // FLUSH is a no-op; as per FUSE docs, despite the name it is not expected to
   // sync data,
@@ -299,15 +167,13 @@ static void nfs_ll_flush(
 
 static void nfs_ll_statfs(fuse_req_t req, fuse_ino_t inode) {
   auto client = reinterpret_cast<NfsClient*>(fuse_req_userdata(req));
-  client->getLogger()->LOG_MSG(
-      LOG_DEBUG, "%s(%lu)(%lu)\n", __func__, fuse_get_unique(req), inode);
+  client->getLogger()->LOG_MSG(LOG_DEBUG, "%s(%lu)(%lu)\n", __func__, fuse_get_unique(req), inode);
   client->statfs(req, inode);
 }
 
 static void nfs_ll_access(fuse_req_t req, fuse_ino_t inode, int mask) {
   auto client = reinterpret_cast<NfsClient*>(fuse_req_userdata(req));
-  client->getLogger()->LOG_MSG(
-      LOG_DEBUG, "%s(%lu)(%lu)\n", __func__, fuse_get_unique(req), inode);
+  client->getLogger()->LOG_MSG(LOG_DEBUG, "%s(%lu)(%lu)\n", __func__, fuse_get_unique(req), inode);
   client->access(req, inode, mask);
 }
 
@@ -488,9 +354,7 @@ std::array<struct fuse_opt, 7> nfusr_mount_opt_descriptors = {
     {{"max_conn=%u", offsetof(struct nfusr_mount_options, maxConnections), 0},
      {"timeout=%d", offsetof(struct nfusr_mount_options, nfsTimeout), 0},
      {"actimeo=%lf", offsetof(struct nfusr_mount_options, attrTimeout), 0},
-     {"maxerrorretries=%u",
-      offsetof(struct nfusr_mount_options, maxErrnoRetries),
-      0},
+     {"maxerrorretries=%u", offsetof(struct nfusr_mount_options, maxErrnoRetries), 0},
      {"perm_mode=%s", offsetof(struct nfusr_mount_options, permMode), 0},
      {"nfs_version=%d", offsetof(struct nfusr_mount_options, nfsVersion), 0},
      FUSE_OPT_END}};
@@ -552,14 +416,11 @@ int main(int argc, char* argv[]) {
       logger->setMask(LOG_UPTO(logLevel));
     } else if (::sscanf(argv[i], "--host-script=%ms", &hostscript) == 1) {
       // get host script name
-    } else if (::sscanf(argv[i],
-                        "--host-refresh-seconds=%d",
-                        &scriptRefreshSeconds) == 1) {
+    } else if (::sscanf(argv[i], "--host-refresh-seconds=%d", &scriptRefreshSeconds) == 1) {
       // get host script refresh time
     } else {
       if (fuse_opt_add_arg(&fuse_args, argv[i])) {
-        logger->LOG_MSG(
-            LOG_ERR, "Out of memory parsing command line arguments.\n");
+        logger->LOG_MSG(LOG_ERR, "Out of memory parsing command line arguments.\n");
         goto cleanup;
       }
     }
@@ -576,8 +437,7 @@ int main(int argc, char* argv[]) {
     fuse_opt_add_arg(&fuse_args, "-oallow_other");
   }
 
-  fuse_opt_parse(
-      &fuse_args, &mnt_options, nfusr_mount_opt_descriptors.data(), nullptr);
+  fuse_opt_parse(&fuse_args, &mnt_options, nfusr_mount_opt_descriptors.data(), nullptr);
 
   if (mnt_options.maxConnections == 0) {
     logger->LOG_MSG(LOG_ERR, "max_conn option must be non-zero.\n");
@@ -594,22 +454,19 @@ int main(int argc, char* argv[]) {
     } else if (!strcmp(mnt_options.permMode, "strict")) {
       permMode = StrictPerms;
     } else {
-      logger->LOG_MSG(
-          LOG_ERR,
-          "perm_mode option must be one of: initial, sloppy, strict.\n");
+      logger->LOG_MSG(LOG_ERR, "perm_mode option must be one of: initial, sloppy, strict.\n");
       goto cleanup;
     }
     ::free(mnt_options.permMode);
     mnt_options.permMode = nullptr;
   }
 
-  if (fuse_parse_cmdline(&fuse_args, &mount, &multithreaded, &g_foreground) <
-      0) {
+  if (fuse_parse_cmdline(&fuse_args, &mount, &multithreaded, &g_foreground) < 0) {
     logger->LOG_MSG(LOG_ERR, "Cannot parse FUSE command line.\n");
     goto cleanup;
   }
 
-  if (urls.empty() && ! hostscript) {
+  if (urls.empty() && !hostscript) {
     logger->LOG_MSG(LOG_ERR, "Required NFS host option missing.\n");
     goto cleanup;
   }
@@ -636,8 +493,7 @@ int main(int argc, char* argv[]) {
     stats = std::make_shared<ClientStats>();
     if (stats->start(statsFile, mount)) {
       stats = nullptr;
-      logger->LOG_MSG(
-          LOG_ERR, "Unable to start stats logger for %s.\n", statsFile);
+      logger->LOG_MSG(LOG_ERR, "Unable to start stats logger for %s.\n", statsFile);
     }
   }
 
@@ -667,8 +523,7 @@ int main(int argc, char* argv[]) {
         mnt_options.nfsVersion);
   }
 
-  session = fuse_lowlevel_new(
-      &fuse_args, &nfs_ll_ops, sizeof(nfs_ll_ops), nfs_client.get());
+  session = fuse_lowlevel_new(&fuse_args, &nfs_ll_ops, sizeof(nfs_ll_ops), nfs_client.get());
   if (session == nullptr) {
     logger->LOG_MSG(LOG_ERR, "Cannot create FUSE session.\n");
     goto cleanup;

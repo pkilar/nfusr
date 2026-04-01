@@ -18,11 +18,7 @@
 
 namespace nfusr {
 
-Logger::Logger()
-    : fp_(nullptr),
-      mask_(LOG_UPTO(LOG_NOTICE)),
-      mode_(stdout_mode),
-      autoFlush_(false) {}
+Logger::Logger() : fp_(nullptr), mask_(LOG_UPTO(LOG_NOTICE)), mode_(stdout_mode), autoFlush_(false) {}
 
 Logger::~Logger() {
   if (fp_) {
@@ -38,8 +34,7 @@ int Logger::openFile(const char* name, bool fifoMode, bool autoFlush) {
     if (fifoMode) {
       if (::mkfifo(name, S_IWUSR | S_IRUSR)) {
         if (errno != EEXIST) {
-          ::fprintf(
-              stderr, "Cannot create FIFO %s: %s.\n", name, ::strerror(errno));
+          ::fprintf(stderr, "Cannot create FIFO %s: %s.\n", name, ::strerror(errno));
         }
       }
       int fd = ::open(name, O_RDWR | O_NONBLOCK, 0);
@@ -87,13 +82,7 @@ static char level_char(int level) {
   return '?';
 }
 
-void Logger::log_msg(
-    const char* file,
-    int line,
-    const char* func,
-    int log_level,
-    const char* fmt,
-    ...) {
+void Logger::log_msg(const char* file, int line, const char* func, int log_level, const char* fmt, ...) {
   va_list ap;
   va_start(ap, fmt);
   char* fmtstr = nullptr;
@@ -109,14 +98,8 @@ void Logger::log_msg(
         ::localtime_r(&now, &tm);
         ::strftime(timestr, sizeof(timestr), "%F %T", &tm);
         if (::asprintf(
-                &fmtstr,
-                "[%s] %c [%s:%d:%s] nfusr-client: %s",
-                timestr,
-                level_char(log_level),
-                file,
-                line,
-                func,
-                fmt) < 0) {
+                &fmtstr, "[%s] %c [%s:%d:%s] nfusr-client: %s", timestr, level_char(log_level), file, line, func, fmt) <
+            0) {
           ::vfprintf(fp_, fmt, ap);
         } else {
           ::vfprintf(fp_, fmtstr, ap);
@@ -126,18 +109,14 @@ void Logger::log_msg(
         }
         break;
       case syslog_mode:
-        if (::asprintf(
-                &fmtstr, "[%s:%d:%s] nfusr-client: %s", file, line, func, fmt) <
-            0) {
+        if (::asprintf(&fmtstr, "[%s:%d:%s] nfusr-client: %s", file, line, func, fmt) < 0) {
           ::vsyslog(log_level | LOG_DAEMON, fmt, ap);
         } else {
           ::vsyslog(log_level | LOG_DAEMON, fmtstr, ap);
         }
         break;
       case stdout_mode:
-        if (::asprintf(
-                &fmtstr, "[%s:%d:%s] nfusr-client: %s", file, line, func, fmt) <
-            0) {
+        if (::asprintf(&fmtstr, "[%s:%d:%s] nfusr-client: %s", file, line, func, fmt) < 0) {
           ::vprintf(fmt, ap);
         } else {
           ::vprintf(fmtstr, ap);
@@ -161,4 +140,4 @@ void Logger::printf(const char* fmt, ...) {
 int Logger::flush() {
   return ::fflush(fp_);
 }
-};
+}; // namespace nfusr

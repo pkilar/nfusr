@@ -17,8 +17,8 @@
 #include <mutex>
 #include <thread>
 
-#include "logger.h"
 #include "ClientStats.h"
+#include "logger.h"
 
 /// @brief NfsConnection represents an active connection to a NFS server.
 ///
@@ -26,10 +26,11 @@
 /// server.
 class NfsConnection {
  public:
-  NfsConnection(std::shared_ptr<nfusr::Logger> logger,
-                std::shared_ptr<ClientStats> stats,
-                int timeoutMs,
-                int nfsVersion = 0);
+  NfsConnection(
+      std::shared_ptr<nfusr::Logger> logger,
+      std::shared_ptr<ClientStats> stats,
+      int timeoutMs,
+      int nfsVersion = 0);
   ~NfsConnection();
 
   int open(std::shared_ptr<std::string> url);
@@ -42,7 +43,7 @@ class NfsConnection {
   void put();
 
   struct nfs_context* getNfsCtx() {
-      return ctx_;
+    return ctx_;
   }
 
   std::shared_ptr<std::string> getUrl() const {
@@ -50,17 +51,17 @@ class NfsConnection {
   }
 
   /// @brief a user-friendy description of the connection, for debugging.
-  std::string const &describe() const {
+  std::string const& describe() const {
     return description_;
   }
 
   bool closed() const {
-      return closed_;
+    return closed_;
   }
 
   int getQueuedRequests() {
-      std::unique_lock<std::mutex> guard(lock_);
-      return nfs_queue_length(ctx_);
+    std::unique_lock<std::mutex> guard(lock_);
+    return nfs_queue_length(ctx_);
   }
 
  private:

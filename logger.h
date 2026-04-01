@@ -13,8 +13,7 @@
 #include <cstdio>
 #include <iostream>
 
-#define LOG_MSG(fmt, ...) \
-  log_msg(__FILE__, __LINE__, __func__, fmt, ##__VA_ARGS__)
+#define LOG_MSG(fmt, ...) log_msg(__FILE__, __LINE__, __func__, fmt, ##__VA_ARGS__)
 
 namespace nfusr {
 class Logger {
@@ -22,23 +21,17 @@ class Logger {
   Logger();
   ~Logger();
 
-  void log_msg(
-      const char* file,
-      int line,
-      const char* func,
-      int log_level,
-      const char* fmt,
-      ...) __attribute__((__format__(__printf__, 6, 7)));
+  void log_msg(const char* file, int line, const char* func, int log_level, const char* fmt, ...)
+      __attribute__((__format__(__printf__, 6, 7)));
 
-  void printf(const char* fmt, ...)
-      __attribute__((__format__(__printf__, 2, 3)));
+  void printf(const char* fmt, ...) __attribute__((__format__(__printf__, 2, 3)));
 
   int openFile(const char* name, bool fifoMode, bool autoFlush);
   void setMask(int mask) {
     mask_ = mask;
   }
   void syslogMode() {
-      mode_ = syslog_mode;
+    mode_ = syslog_mode;
   }
 
   int flush();
@@ -49,4 +42,4 @@ class Logger {
   enum { stdout_mode, file_mode, syslog_mode } mode_;
   bool autoFlush_;
 };
-};
+}; // namespace nfusr

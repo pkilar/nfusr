@@ -22,10 +22,7 @@ ClientStats::~ClientStats() {
   }
 }
 
-int ClientStats::start(
-    const char* fileName,
-    const char* prefix,
-    unsigned interval) {
+int ClientStats::start(const char* fileName, const char* prefix, unsigned interval) {
   int rc;
 
   if (prefix) {
@@ -34,8 +31,7 @@ int ClientStats::start(
   }
   interval_ = interval;
   logger_ = std::make_shared<nfusr::Logger>();
-  if ((rc = logger_->openFile(
-           fileName, /* fifoMode = */ true, /* autoFlush = */ false)) != 0) {
+  if ((rc = logger_->openFile(fileName, /* fifoMode = */ true, /* autoFlush = */ false)) != 0) {
     return rc;
   }
 
@@ -61,10 +57,8 @@ static inline double avg(uint64_t total_usec, uint64_t count) {
 void ClientStats::statsDumpThread() {
   std::unique_lock<std::mutex> lock(lk_);
   while (!terminateThread_) {
-    if (cv_.wait_until(
-            lock,
-            std::chrono::steady_clock::now() +
-                std::chrono::seconds(interval_)) == std::cv_status::timeout) {
+    if (cv_.wait_until(lock, std::chrono::steady_clock::now() + std::chrono::seconds(interval_)) ==
+        std::cv_status::timeout) {
       // Copy all the counters into local buffers, then drop the lock.
       opStats opIntervalStats[num_fuse_optypes];
       opStats opTotalStats[num_fuse_optypes];
@@ -83,91 +77,40 @@ void ClientStats::statsDumpThread() {
 
       for (unsigned ix = 1; ix < num_fuse_optypes; ++ix) {
         auto name = fuse_optype_name((enum fuse_optype)ix);
-        logger_->printf(
-            "\"%saggr.%s.count\": \"%lu\"\n",
-            prefix_.c_str(),
-            name,
-            opTotalStats[ix].count);
+        logger_->printf("\"%saggr.%s.count\": \"%lu\"\n", prefix_.c_str(), name, opTotalStats[ix].count);
         logger_->printf(
             "\"%saggr.%s.avg\": \"%lf\"\n",
             prefix_.c_str(),
             name,
             avg(opTotalStats[ix].time_usec, opTotalStats[ix].count));
-        logger_->printf(
-            "\"%saggr.%s.max\": \"%lu\"\n",
-            prefix_.c_str(),
-            name,
-            opTotalStats[ix].max_time_usec);
-        logger_->printf(
-            "\"%sinter.%s.count\": \"%lu\"\n",
-            prefix_.c_str(),
-            name,
-            opIntervalStats[ix].count);
+        logger_->printf("\"%saggr.%s.max\": \"%lu\"\n", prefix_.c_str(), name, opTotalStats[ix].max_time_usec);
+        logger_->printf("\"%sinter.%s.count\": \"%lu\"\n", prefix_.c_str(), name, opIntervalStats[ix].count);
         logger_->printf(
             "\"%sinter.%s.avg\": \"%lf\"\n",
             prefix_.c_str(),
             name,
             avg(opIntervalStats[ix].time_usec, opIntervalStats[ix].count));
-        logger_->printf(
-            "\"%sinter.%s.max\": \"%lu\"\n",
-            prefix_.c_str(),
-            name,
-            opIntervalStats[ix].max_time_usec);
+        logger_->printf("\"%sinter.%s.max\": \"%lu\"\n", prefix_.c_str(), name, opIntervalStats[ix].max_time_usec);
       }
 
-      logger_->printf(
-          "\"%saggr.rpc-failures.count\": \"%lu\"\n",
-          prefix_.c_str(),
-          rpcTotalStats.failures);
-      logger_->printf(
-          "\"%sinter.rpc-failures.count\": \"%lu\"\n",
-          prefix_.c_str(),
-          rpcIntervalStats.failures);
+      logger_->printf("\"%saggr.rpc-failures.count\": \"%lu\"\n", prefix_.c_str(), rpcTotalStats.failures);
+      logger_->printf("\"%sinter.rpc-failures.count\": \"%lu\"\n", prefix_.c_str(), rpcIntervalStats.failures);
 
-      logger_->printf(
-          "\"%saggr.rpc-timeouts.count\": \"%lu\"\n",
-          prefix_.c_str(),
-          rpcTotalStats.timeouts);
-      logger_->printf(
-          "\"%sinter.rpc-timeouts.count\": \"%lu\"\n",
-          prefix_.c_str(),
-          rpcIntervalStats.timeouts);
+      logger_->printf("\"%saggr.rpc-timeouts.count\": \"%lu\"\n", prefix_.c_str(), rpcTotalStats.timeouts);
+      logger_->printf("\"%sinter.rpc-timeouts.count\": \"%lu\"\n", prefix_.c_str(), rpcIntervalStats.timeouts);
 
-      logger_->printf(
-          "\"%saggr.rpc-connect.count\": \"%lu\"\n",
-          prefix_.c_str(),
-          rpcTotalStats.connect_success);
-      logger_->printf(
-          "\"%sinter.rpc-connect.count\": \"%lu\"\n",
-          prefix_.c_str(),
-          rpcIntervalStats.connect_success);
+      logger_->printf("\"%saggr.rpc-connect.count\": \"%lu\"\n", prefix_.c_str(), rpcTotalStats.connect_success);
+      logger_->printf("\"%sinter.rpc-connect.count\": \"%lu\"\n", prefix_.c_str(), rpcIntervalStats.connect_success);
 
+      logger_->printf("\"%saggr.rpc-connect-fail.count\": \"%lu\"\n", prefix_.c_str(), rpcTotalStats.connect_failure);
       logger_->printf(
-          "\"%saggr.rpc-connect-fail.count\": \"%lu\"\n",
-          prefix_.c_str(),
-          rpcTotalStats.connect_failure);
-      logger_->printf(
-          "\"%sinter.rpc-connect-fail.count\": \"%lu\"\n",
-          prefix_.c_str(),
-          rpcIntervalStats.connect_failure);
+          "\"%sinter.rpc-connect-fail.count\": \"%lu\"\n", prefix_.c_str(), rpcIntervalStats.connect_failure);
 
-      logger_->printf(
-          "\"%saggr.rpc-issued.count\": \"%lu\"\n",
-          prefix_.c_str(),
-          rpcTotalStats.issued);
-      logger_->printf(
-          "\"%sinter.rpc-issued.count\": \"%lu\"\n",
-          prefix_.c_str(),
-          rpcIntervalStats.issued);
+      logger_->printf("\"%saggr.rpc-issued.count\": \"%lu\"\n", prefix_.c_str(), rpcTotalStats.issued);
+      logger_->printf("\"%sinter.rpc-issued.count\": \"%lu\"\n", prefix_.c_str(), rpcIntervalStats.issued);
 
-      logger_->printf(
-          "\"%saggr.rpc-completed.count\": \"%lu\"\n",
-          prefix_.c_str(),
-          rpcTotalStats.completed);
-      logger_->printf(
-          "\"%sinter.rpc-completed.count\": \"%lu\"\n",
-          prefix_.c_str(),
-          rpcIntervalStats.completed);
+      logger_->printf("\"%saggr.rpc-completed.count\": \"%lu\"\n", prefix_.c_str(), rpcTotalStats.completed);
+      logger_->printf("\"%sinter.rpc-completed.count\": \"%lu\"\n", prefix_.c_str(), rpcIntervalStats.completed);
 
       for (auto cb : callbacks_) {
         cb(logger_, prefix_.c_str());
@@ -190,9 +133,7 @@ void ClientStats::recordIssue() {
 }
 
 /// @brief record the completion of an operation.
-void ClientStats::recordOperation(
-    enum fuse_optype optype,
-    std::chrono::microseconds elapsed) {
+void ClientStats::recordOperation(enum fuse_optype optype, std::chrono::microseconds elapsed) {
   assert(optype < num_fuse_optypes);
 
   uint64_t elapsed_usec = elapsed.count();
@@ -200,12 +141,10 @@ void ClientStats::recordOperation(
   std::unique_lock<std::mutex> lock(lk_);
   opTotalStats_[optype].count++;
   opTotalStats_[optype].time_usec += elapsed_usec;
-  opTotalStats_[optype].max_time_usec =
-      std::max(opTotalStats_[optype].max_time_usec, elapsed_usec);
+  opTotalStats_[optype].max_time_usec = std::max(opTotalStats_[optype].max_time_usec, elapsed_usec);
   opIntervalStats_[optype].count++;
   opIntervalStats_[optype].time_usec += elapsed_usec;
-  opIntervalStats_[optype].max_time_usec =
-      std::max(opIntervalStats_[optype].max_time_usec, elapsed_usec);
+  opIntervalStats_[optype].max_time_usec = std::max(opIntervalStats_[optype].max_time_usec, elapsed_usec);
   rpcIntervalStats_.completed++;
   rpcTotalStats_.completed++;
 }

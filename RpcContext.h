@@ -46,13 +46,12 @@
 
 class CacheBlock {
  public:
-  CacheBlock(std::shared_ptr<std::string> path, size_t size, off_t offset)
-      : data_(static_cast<int>(size)) {
+  CacheBlock(std::shared_ptr<std::string> path, size_t size, off_t offset) : data_(static_cast<int>(size)) {
     path_ = path;
     size_ = size;
     offset_ = offset;
   }
-  ~CacheBlock(){};
+  ~CacheBlock() {};
   bool readCache();
   const char* getData() {
     return (const char*)data_.data();
@@ -81,7 +80,7 @@ class RpcContext {
     conn_ = nullptr;
     errnoRetries_ = 0;
   }
-  virtual ~RpcContext(){};
+  virtual ~RpcContext() {};
 
   static void setMaxErrnoRetries(unsigned maxErrnoRetries) {
     maxErrnoRetries_ = maxErrnoRetries;
@@ -131,19 +130,11 @@ class RpcContext {
   /// retryable; on non-retryable error, the FUSE request
   /// is completed in error and as a side effect, the
   /// RpcContext object is destroyed.
-  bool succeeded(
-      int rpc_status,
-      int nfs_status,
-      bool& retry,
-      bool idempotent = true) {
+  bool succeeded(int rpc_status, int nfs_status, bool& retry, bool idempotent = true) {
     retry = false;
     if (rpc_status != RPC_STATUS_SUCCESS) {
       client_->getLogger()->LOG_MSG(
-          LOG_WARNING,
-          "%s: RPC status %d (%lu).\n",
-          conn_->describe().c_str(),
-          rpc_status,
-          fuse_get_unique(req_));
+          LOG_WARNING, "%s: RPC status %d (%lu).\n", conn_->describe().c_str(), rpc_status, fuse_get_unique(req_));
       client_->recordRpcFailure(rpc_status == RPC_STATUS_TIMEOUT);
       failConnection();
       retry = true;
@@ -151,11 +142,7 @@ class RpcContext {
     }
 
     if (client_->errorInjection() && idempotent) {
-      client_->getLogger()->LOG_MSG(
-          LOG_DEBUG,
-          "%s: simulating failure for %lu.\n",
-          __func__,
-          fuse_get_unique(req_));
+      client_->getLogger()->LOG_MSG(LOG_DEBUG, "%s: simulating failure for %lu.\n", __func__, fuse_get_unique(req_));
       failConnection();
       retry = true;
       return false;
@@ -167,8 +154,7 @@ class RpcContext {
     }
 
     if (nfs_status != NFS3_OK) {
-      if (idempotent && errnoRetries_ < maxErrnoRetries_ &&
-          isRetryableError(nfs_status)) {
+      if (idempotent && errnoRetries_ < maxErrnoRetries_ && isRetryableError(nfs_status)) {
         errnoRetries_++;
         client_->getLogger()->LOG_MSG(
             LOG_INFO,
@@ -189,11 +175,7 @@ class RpcContext {
               errnoRetries_,
               maxErrnoRetries_);
         } else if (idempotent && !isRetryableError(nfs_status)) {
-          client_->getLogger()->LOG_MSG(
-              LOG_INFO,
-              "%s: Error #%d is not retryable.\n",
-              __func__,
-              nfs_status);
+          client_->getLogger()->LOG_MSG(LOG_INFO, "%s: Error #%d is not retryable.\n", __func__, nfs_status);
         }
       }
 
@@ -205,10 +187,7 @@ class RpcContext {
 
   virtual void logError(int rc) {
     getClient()->getLogger()->LOG_MSG(
-        errnoLoglevel(rc),
-        "Operation %s failed: %s\n",
-        fuse_optype_name(optype_),
-        strerror(rc));
+        errnoLoglevel(rc), "Operation %s failed: %s\n", fuse_optype_name(optype_), strerror(rc));
   }
 
   void replyError(int rc) {
@@ -216,74 +195,63 @@ class RpcContext {
       logError(rc);
     }
     finishOperation();
-    client_->getLogger()->LOG_MSG(
-        LOG_DEBUG, "%s(%lu): %d\n", __func__, fuse_get_unique(req_), rc);
+    client_->getLogger()->LOG_MSG(LOG_DEBUG, "%s(%lu): %d\n", __func__, fuse_get_unique(req_), rc);
     fuse_reply_err(req_, rc);
     delete this;
   }
 
   virtual void replyBuf(const void* buf, size_t size) {
     finishOperation();
-    client_->getLogger()->LOG_MSG(
-        LOG_DEBUG, "%s(%lu): %lu\n", __func__, fuse_get_unique(req_), size);
+    client_->getLogger()->LOG_MSG(LOG_DEBUG, "%s(%lu): %lu\n", __func__, fuse_get_unique(req_), size);
     fuse_reply_buf(req_, (const char*)buf, size);
     delete this;
   }
 
   void replyEntry(const struct fuse_entry_param* e) {
     finishOperation();
-    client_->getLogger()->LOG_MSG(
-        LOG_DEBUG, "%s(%lu)\n", __func__, fuse_get_unique(req_));
+    client_->getLogger()->LOG_MSG(LOG_DEBUG, "%s(%lu)\n", __func__, fuse_get_unique(req_));
     fuse_reply_entry(req_, e);
     delete this;
   }
 
-  void replyCreate(
-      const struct fuse_entry_param* e,
-      const struct fuse_file_info* f) {
+  void replyCreate(const struct fuse_entry_param* e, const struct fuse_file_info* f) {
     finishOperation();
-    client_->getLogger()->LOG_MSG(
-        LOG_DEBUG, "%s(%lu)\n", __func__, fuse_get_unique(req_));
+    client_->getLogger()->LOG_MSG(LOG_DEBUG, "%s(%lu)\n", __func__, fuse_get_unique(req_));
     fuse_reply_create(req_, e, f);
     delete this;
   }
 
   void replyOpen(const struct fuse_file_info* f) {
     finishOperation();
-    client_->getLogger()->LOG_MSG(
-        LOG_DEBUG, "%s(%lu)\n", __func__, fuse_get_unique(req_));
+    client_->getLogger()->LOG_MSG(LOG_DEBUG, "%s(%lu)\n", __func__, fuse_get_unique(req_));
     fuse_reply_open(req_, f);
     delete this;
   }
 
   void replyAttr(const struct stat* attr, double attr_timeout) {
     finishOperation();
-    client_->getLogger()->LOG_MSG(
-        LOG_DEBUG, "%s(%lu)\n", __func__, fuse_get_unique(req_));
+    client_->getLogger()->LOG_MSG(LOG_DEBUG, "%s(%lu)\n", __func__, fuse_get_unique(req_));
     fuse_reply_attr(req_, attr, attr_timeout);
     delete this;
   }
 
   void replyWrite(size_t count) {
     finishOperation();
-    client_->getLogger()->LOG_MSG(
-        LOG_DEBUG, "%s(%lu): %lu\n", __func__, fuse_get_unique(req_), count);
+    client_->getLogger()->LOG_MSG(LOG_DEBUG, "%s(%lu): %lu\n", __func__, fuse_get_unique(req_), count);
     fuse_reply_write(req_, count);
     delete this;
   }
 
   void replyReadlink(const char* linkname) {
     finishOperation();
-    client_->getLogger()->LOG_MSG(
-        LOG_DEBUG, "%s(%lu): %s\n", __func__, fuse_get_unique(req_), linkname);
+    client_->getLogger()->LOG_MSG(LOG_DEBUG, "%s(%lu): %s\n", __func__, fuse_get_unique(req_), linkname);
     fuse_reply_readlink(req_, linkname);
     delete this;
   }
 
   void replyStatfs(const struct statvfs* stbuf) {
     finishOperation();
-    client_->getLogger()->LOG_MSG(
-        LOG_DEBUG, "%s(%lu)\n", __func__, fuse_get_unique(req_));
+    client_->getLogger()->LOG_MSG(LOG_DEBUG, "%s(%lu)\n", __func__, fuse_get_unique(req_));
     fuse_reply_statfs(req_, stbuf);
     delete this;
   }
@@ -327,8 +295,7 @@ class RpcContext {
   void finishOperation() {
     if (client_->statsEnabled()) {
       auto end = std::chrono::steady_clock::now();
-      auto delta = std::chrono::duration_cast<std::chrono::microseconds>(
-          end - stats_.start_);
+      auto delta = std::chrono::duration_cast<std::chrono::microseconds>(end - stats_.start_);
 
       client_->recordOperationStats(optype_, delta);
     }
@@ -362,11 +329,7 @@ class RpcContext {
 /// @brief base class for operations which take an inode.
 class RpcContextInode : public RpcContext {
  public:
-  RpcContextInode(
-      NfsClient* client,
-      struct fuse_req* req,
-      enum fuse_optype optype,
-      fuse_ino_t inode)
+  RpcContextInode(NfsClient* client, struct fuse_req* req, enum fuse_optype optype, fuse_ino_t inode)
       : RpcContext(client, req, optype) {
     inode_ = inode;
   }
@@ -376,11 +339,7 @@ class RpcContextInode : public RpcContext {
 
   void logError(int rc) override {
     this->getClient()->getLogger()->LOG_MSG(
-        errnoLoglevel(rc),
-        "Operation %s failed on inode %lu: %s\n",
-        fuse_optype_name(optype_),
-        inode_,
-        strerror(rc));
+        errnoLoglevel(rc), "Operation %s failed on inode %lu: %s\n", fuse_optype_name(optype_), inode_, strerror(rc));
   }
 
  private:
@@ -498,13 +457,8 @@ class CachedReadRpcContext : public ReadRpcContext {
       auto requestSize = getSize();
       auto off = getOff();
       this->getClient()->getLogger()->LOG_MSG(
-          LOG_DEBUG,
-          "%s Attempting to write %lu to cache file %s.\n",
-          __func__,
-          inode,
-          path->c_str());
-      this->getCachedClient()->writeCache(
-          path, requestSize, off, (const char*)buf, size);
+          LOG_DEBUG, "%s Attempting to write %lu to cache file %s.\n", __func__, inode, path->c_str());
+      this->getCachedClient()->writeCache(path, requestSize, off, (const char*)buf, size);
     }
     ReadRpcContext::replyBuf(buf, size);
   }
