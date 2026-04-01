@@ -18,3 +18,7 @@ EXTRA_DIST+=mount.nfusr.in
 mount.nfusr: mount.nfusr.in
 	@rm -f $@-t $@
 	@sed -e 's|@bindir[@]|$(bindir)|g' <$< >$@-t && chmod a-w $@-t && mv $@-t $@
+
+install-exec-hook:
+	$(STRIP) $(DESTDIR)$(bindir)/nfusr
+	setcap cap_net_bind_service=+ep $(DESTDIR)$(bindir)/nfusr

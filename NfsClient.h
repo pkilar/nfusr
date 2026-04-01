@@ -56,15 +56,12 @@ class NfsClient {
       std::shared_ptr<nfusr::Logger> logger,
       std::shared_ptr<ClientStats> stats,
       bool errorInjection,
-      NfsClientPermissionMode permMode);
+      NfsClientPermissionMode permMode,
+      int nfsVersion = 0);
   virtual ~NfsClient();
 
   bool start(std::shared_ptr<std::string> cacheRoot);
-  bool checkRpcCompletion(
-      RpcContext* info,
-      int rpc_status,
-      int nfs_status,
-      bool& retry);
+  bool checkRpcCompletion(RpcContext* info, int rpc_status, int nfs_status, bool& retry);
   bool checkRpcCall(RpcContext* info, int rpc_status);
 
   NfsConnectionPool& getConnectionPool() {
@@ -80,9 +77,7 @@ class NfsClient {
     return stats_ != nullptr;
   }
 
-  void recordOperationStats(
-      enum fuse_optype optype,
-      std::chrono::microseconds elapsed) {
+  void recordOperationStats(enum fuse_optype optype, std::chrono::microseconds elapsed) {
     if (stats_) {
       stats_->recordOperation(optype, elapsed);
     }
@@ -115,101 +110,35 @@ class NfsClient {
   void getattrWithContext(RpcContextInodeFile* ctx);
   void getattr(fuse_req_t req, fuse_ino_t inode, struct fuse_file_info* file);
   void opendir(fuse_req_t req, fuse_ino_t inode, struct fuse_file_info* file);
-  void readdir(
-      fuse_req_t req,
-      fuse_ino_t inode,
-      size_t size,
-      off_t off,
-      struct fuse_file_info* file);
-  void
-  releasedir(fuse_req_t req, fuse_ino_t inode, struct fuse_file_info* file);
+  void readdir(fuse_req_t req, fuse_ino_t inode, size_t size, off_t off, struct fuse_file_info* file);
+  void releasedir(fuse_req_t req, fuse_ino_t inode, struct fuse_file_info* file);
   void lookupWithContext(RpcContextParentName* ctx);
   void lookup(fuse_req_t req, fuse_ino_t parent, const char* name);
-  static void lookupCallback(
-      struct rpc_context*,
-      int rpc_status,
-      void* data,
-      void* private_data);
+  static void lookupCallback(struct rpc_context*, int rpc_status, void* data, void* private_data);
   void openWithContext(RpcContextInodeFile* ctx);
   void open(fuse_req_t req, fuse_ino_t inode, struct fuse_file_info* file);
   void readWithContext(ReadRpcContext* ctx);
-  virtual void read(
-      fuse_req_t req,
-      fuse_ino_t inode,
-      size_t size,
-      off_t off,
-      struct fuse_file_info* file);
+  virtual void read(fuse_req_t req, fuse_ino_t inode, size_t size, off_t off, struct fuse_file_info* file);
   void writeWithContext(WriteRpcContext* ctx);
-  void write(
-      fuse_req_t req,
-      fuse_ino_t inode,
-      const char* buf,
-      size_t size,
-      off_t off,
-      struct fuse_file_info* file);
-  void static createCallback(
-      struct rpc_context*,
-      int rpc_status,
-      void* data,
-      void* private_data);
-  void create(
-      fuse_req_t req,
-      fuse_ino_t parent,
-      const char* name,
-      mode_t mode,
-      struct fuse_file_info* file);
-  void mknod(
-      fuse_req_t req,
-      fuse_ino_t parent,
-      const char* name,
-      mode_t mode,
-      dev_t rdev);
+  void write(fuse_req_t req, fuse_ino_t inode, const char* buf, size_t size, off_t off, struct fuse_file_info* file);
+  void static createCallback(struct rpc_context*, int rpc_status, void* data, void* private_data);
+  void create(fuse_req_t req, fuse_ino_t parent, const char* name, mode_t mode, struct fuse_file_info* file);
+  void mknod(fuse_req_t req, fuse_ino_t parent, const char* name, mode_t mode, dev_t rdev);
   void forget(fuse_req_t req, fuse_ino_t ino, unsigned long nlookup);
   void release(fuse_req_t req, fuse_ino_t ino, struct fuse_file_info* fi);
-  void static mkdirCallback(
-      struct rpc_context*,
-      int rpc_status,
-      void* data,
-      void* private_data);
+  void static mkdirCallback(struct rpc_context*, int rpc_status, void* data, void* private_data);
   void mkdir(fuse_req_t req, fuse_ino_t parent, const char* name, mode_t mode);
   void setattrWithContext(SetattrRpcContext* ctx);
-  void setattr(
-      fuse_req_t req,
-      fuse_ino_t ino,
-      struct stat* attr,
-      int valid,
-      struct fuse_file_info* fi);
+  void setattr(fuse_req_t req, fuse_ino_t ino, struct stat* attr, int valid, struct fuse_file_info* fi);
   void unlink(fuse_req_t req, fuse_ino_t parent, const char* name);
   void rmdir(fuse_req_t req, fuse_ino_t parent, const char* name);
-  void static symlinkCallback(
-      struct rpc_context*,
-      int rpc_status,
-      void* data,
-      void* private_data);
-  void symlink(
-      fuse_req_t req,
-      const char* link,
-      fuse_ino_t parent,
-      const char* name);
+  void static symlinkCallback(struct rpc_context*, int rpc_status, void* data, void* private_data);
+  void symlink(fuse_req_t req, const char* link, fuse_ino_t parent, const char* name);
   void readlink(fuse_req_t req, fuse_ino_t inode);
-  void static linkCallback(
-      struct rpc_context*,
-      int rpc_status,
-      void* data,
-      void* private_data);
-  void link(
-      fuse_req_t req,
-      fuse_ino_t inode,
-      fuse_ino_t newparent,
-      const char* newname);
-  void rename(
-      fuse_req_t req,
-      fuse_ino_t parent,
-      const char* name,
-      fuse_ino_t newparent,
-      const char* newname);
-  void
-  fsync(fuse_req_t req, fuse_ino_t inode, int datasync, fuse_file_info* file);
+  void static linkCallback(struct rpc_context*, int rpc_status, void* data, void* private_data);
+  void link(fuse_req_t req, fuse_ino_t inode, fuse_ino_t newparent, const char* newname);
+  void rename(fuse_req_t req, fuse_ino_t parent, const char* name, fuse_ino_t newparent, const char* newname);
+  void fsync(fuse_req_t req, fuse_ino_t inode, int datasync, fuse_file_info* file);
   void statfsWithContext(RpcContextInode* ctx);
   void statfs(fuse_req_t req, fuse_ino_t inode);
   void accessWithContext(AccessRpcContext* ctx);

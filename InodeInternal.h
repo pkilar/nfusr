@@ -8,11 +8,11 @@
  */
 #pragma once
 
+#include <nfsc/libnfs-raw-nfs.h>
+#include <nfsc/libnfs-raw.h>
+#include <nfsc/libnfs.h>
 #include <cassert>
 #include <cstring>
-#include <nfsc/libnfs.h>
-#include <nfsc/libnfs-raw.h>
-#include <nfsc/libnfs-raw-nfs.h>
 #include "logger.h"
 
 /// @brief internal representation of an inode.
@@ -24,9 +24,7 @@
 /// to inodes in fuse_ino_t, which can't hold a shared_ptr instance.
 class InodeInternal {
  public:
-  InodeInternal(
-      const nfs_fh3* fh,
-      std::shared_ptr<std::string> local_cache_path)
+  InodeInternal(const nfs_fh3* fh, std::shared_ptr<std::string> local_cache_path)
       : refcount_(1), local_cache_path_(local_cache_path) {
     fh_.data.data_val = new char[fh->data.data_len];
     fh_.data.data_len = fh->data.data_len;
@@ -39,7 +37,7 @@ class InodeInternal {
     ++refcount_;
   };
 
-  void deref(nfusr::Logger *logger = nullptr, const char *caller = nullptr) {
+  void deref(nfusr::Logger* logger = nullptr, const char* caller = nullptr) {
     assert(refcount_ > 0);
     if (--refcount_ == 0) {
       if (logger && caller) {
